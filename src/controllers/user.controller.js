@@ -7,8 +7,6 @@ import {
 } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
-import fs from "fs";
-import { channel, hasSubscribers } from "diagnostics_channel";
 import mongoose from "mongoose";
 
 //token refresh and access
@@ -169,13 +167,13 @@ const logOutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
     req.user._id,
     {
-      $set: { refreshToken: undefined },
+      $unset: { refreshToken: 1 }, //this removes the field from document
     },
     {
       new: true,
     }
   );
-  console.log("token error");
+  // console.log("token error");
   const options = {
     httpOnly: true,
     secure: true,
@@ -249,7 +247,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(new ApiResponse(200, {}, "password change succesfull"));
+    .json(new ApiResponse(200, {}, "password change successfully"));
 });
 
 const getCurrentUser = asyncHandler(async (req, res) => {
@@ -359,7 +357,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
   if (!userName?.trim()) {
     throw new apiError(400, "username is missing");
   }
-
+  console.log("userName", userName);
   const channel = await User.aggregate([
     { $match: { userName: userName?.toLowerCase() } },
     {
@@ -381,10 +379,10 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     {
       $addFields: {
         subscribersCount: {
-          $set: "subscribers",
+          $size: "$subscribers",
         },
         channelsSubscribedToCount: {
-          $set: "subscribedTo",
+          $size: "$subscribedTo",
         },
         isSubscribed: {
           $cond: {
